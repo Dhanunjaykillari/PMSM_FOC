@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPMSM FOC & Advanced Current Control Workbench</title>
+    <!-- MathJax for rendering equations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js?config=TeX-MML-AM_CHTML" async></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent: #38bdf8;
+            --accent-hover: #0284c7;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --code-bg: #090d16;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        header h1 {
+            font-size: 2.2rem;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+
+        @media(min-width: 900px) {
+            .grid {
+                grid-template-columns: 1fr 2fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3);
+        }
+
+        .card h2 {
+            font-size: 1.4rem;
+            color: var(--accent);
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+
+        /* Tabs styling */
+        .tab-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .tab-btn {
+            background: #0f172a;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 0.6rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn:hover {
+            border-color: var(--accent);
+            color: var(--text-main);
+        }
+
+        .tab-btn.active {
+            background: var(--accent);
+            color: #0f172a;
+            border-color: var(--accent);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        code, pre {
+            font-family: 'Consolas', 'Courier New', monospace;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            margin: 1rem 0;
+            font-size: 0.9rem;
+            color: #e2e8f0;
+        }
+
+        ul {
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        li {
+            margin-bottom: 0.4rem;
+        }
+
+        .badge {
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--accent);
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Interior PMSM (IPMSM) Field-Oriented Control Suite</h1>
+        <p>Dynamic Modeling, MTPA Trajectory, and Current Regulation Benchmark</p>
+    </header>
+
+    <div class="grid">
+        <!-- Sidebar / Motor & MTPA Fundamentals -->
+        <div>
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <h2>IPMSM Voltage Equations</h2>
+                <p>In the synchronous \(dq\)-reference frame:</p>
+                $$\begin{aligned}
+                v_d &= R_s i_d + L_d \frac{di_d}{dt} - \omega_e L_q i_q \\
+                v_q &= R_s i_q + L_q \frac{di_q}{dt} + \omega_e (L_d i_d + \lambda_{pm})
+                \end{aligned}$$
+            </div>
+
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <h2>Electromagnetic Torque & MTPA</h2>
+                <p>Electromagnetic torque generated by reluctance and PM interaction:</p>
+                $$T_e = \frac{3}{2} p \left[ \lambda_{pm} i_q + (L_d - L_q) i_d i_q \right]$$
+                
+                <p style="margin-top: 0.8rem;">Because \(L_q > L_d\) in IPMSM, reluctance torque is utilized by setting \(i_d < 0\). Maximum Torque Per Ampere (MTPA) condition dictates:</p>
+                $$i_d = \frac{\lambda_{pm}}{2(L_q - L_d)} - \sqrt{\frac{\lambda_{pm}^2}{4(L_q - L_d)^2} + i_q^2}$$
+            </div>
+
+            <div class="card">
+                <h2>System Parameters</h2>
+                <ul>
+                    <li><strong>Stator Resistance (\(R_s\)):</strong> 0.285 \(\Omega\)</li>
+                    <li><strong>d-axis Inductance (\(L_d\)):</strong> 3.0 mH</li>
+                    <li><strong>q-axis Inductance (\(L_q\)):</strong> 5.8 mH</li>
+                    <li><strong>PM Flux Linkage (\(\lambda_{pm}\)):</strong> 0.175 Wb</li>
+                    <li><strong>Pole Pairs (\(p\)):</strong> 4</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Main Content / Control Techniques -->
+        <div>
+            <div class="card">
+                <h2>Current Control Techniques</h2>
+                <p class="badge">Select a control strategy to view formulation and execution principles</p>
+                
+                <div class="tab-buttons">
+                    <button class="tab-btn active" onclick="showTab('pi')">PI Control (Standard)</button>
+                    <button class="tab-btn" onclick="showTab('hysteresis')">Hysteresis Band</button>
+                    <button class="tab-btn" onclick="showTab('mpc')">Model Predictive (FCS-MPC)</button>
+                    <button class="tab-btn" onclick="showTab('deadbeat')">Deadbeat Control</button>
+                    <button class="tab-btn" onclick="showTab('smc')">Sliding Mode (SMC)</button>
+                </div>
+
+                <!-- 1. Classical PI Control -->
+                <div id="pi" class="tab-content active">
+                    <h3>1. Proportional-Integral (PI) Field-Oriented Control</h3>
+                    <p>Decouples the \(d\)- and \(q\)-axis current loops using feedforward cross-coupling compensation, driving standard SVPWM switching.</p>
+                    
+                    <pre>
+// Pseudo-code: Synchronous Frame PI Controller with Decoupling
+e_id = id_ref - id_meas;
+e_iq = iq_ref - iq_meas;
+
+// PI Integral Accumulation
+integ_d += e_id * Ki * Ts;
+integ_q += e_iq * Ki * Ts;
+
+// Decoupled Output Voltages
+vd_ref = (Kp * e_id + integ_d) - (w_e * Lq * iq_meas);
+vq_ref = (Kp * e_iq + integ_q) + (w_e * (Ld * id_meas + lambda_pm));
+                    </pre>
+
+                    <h4>Key Characteristics:</h4>
+                    <ul>
+                        <li><strong>Switching Frequency:</strong> Fixed (determined by PWM carrier frequency).</li>
+                        <li><strong>Pros:</strong> Simple implementation, low current ripple, standard tuning rules.</li>
+                        <li><strong>Cons:</strong> Limited dynamic bandwidth compared to predictive methods, sensitive to cross-coupling delays.</li>
+                    </ul>
+                </div>
+
+                <!-- 2. Hysteresis Control -->
+                <div id="hysteresis" class="tab-content">
+                    <h3>2. Hysteresis Current Control</h3>
+                    <p>Direct non-linear control operating in the stationary \(\alpha\beta\) or phase \(abc\) frame. Inverter switching signals are triggered directly when phase errors cross upper/lower thresholds (\(h\)).</p>
+                    
+                    <pre>
+// Phase A Hysteresis Logic
+err_ia = ia_ref - ia_meas;
+
+if (err_ia > +h) {
+    Switch_A = HIGH; // Apply positive voltage state
+} else if (err_ia < -h) {
+    Switch_A = LOW;  // Apply negative voltage state
+}
+                    </pre>
+
+                    <h4>Key Characteristics:</h4>
+                    <ul>
+                        <li><strong>Switching Frequency:</strong> Variable (depends on operating speed, load, and inductance).</li>
+                        <li><strong>Pros:</strong> Extremely fast transient response, parameter independent, no modulator required.</li>
+                        <li><strong>Cons:</strong> High current ripple, variable acoustic noise, difficult filter design.</li>
+                    </ul>
+                </div>
+
+                <!-- 3. FCS-MPC Control -->
+                <div id="mpc" class="tab-content">
+                    <h3>3. Finite Control Set Model Predictive Control (FCS-MPC)</h3>
+                    <p>Uses discrete-time state equations of the IPMSM to evaluate all 7 unique voltage vectors (\(V_0 \dots V_7\)) of a 2-level VSI, selecting the vector that minimizes a predefined cost function \(g\) at step \(k+1\).</p>
+                    
+                    $$\hat{i}_d(k+1) = i_d(k) + \frac{T_s}{L_d} \left[ v_d(k) - R_s i_d(k) + \omega_e L_q i_q(k) \right]$$
+                    $$\hat{i}_q(k+1) = i_q(k) + \frac{T_s}{L_q} \left[ v_q(k) - R_s i_q(k) - \omega_e (L_d i_d(k) + \lambda_{pm}) \right]$$
+
+                    <pre>
+// Cost Function Optimization Loop
+g_opt = INFINITY;
+best_vector = 0;
+
+for (int v = 0; v < 8; v++) {
+    // 1. Predict currents id_next, iq_next for switching vector v
+    predict_currents(v, &id_next, &iq_next);
+    
+    // 2. Evaluate Cost Function
+    g = pow(id_ref - id_next, 2) + pow(iq_ref - iq_next, 2);
+    
+    // 3. Select Vector with Minimum Error
+    if (g < g_opt) {
+        g_opt = g;
+        best_vector = v;
+    }
+}
+apply_inverter_vector(best_vector);
+                    </pre>
+                </div>
+
+                <!-- 4. Deadbeat Control -->
+                <div id="deadbeat" class="tab-content">
+                    <h3>4. Deadbeat Current Control (DBCC)</h3>
+                    <p>A predictive model-based control technique that calculates the exact reference voltage required to force phase currents to match their command values at the end of the next sampling period (\(k+1\)).</p>
+
+                    $$v_d^*(k) = R_s i_d(k) + \frac{L_d}{T_s} \left[ i_d^*(k+1) - i_d(k) \right] - \omega_e L_q i_q(k)$$
+                    $$v_q^*(k) = R_s i_q(k) + \frac{L_q}{T_s} \left[ i_q^*(k+1) - i_q(k) \right] + \omega_e (L_d i_d(k) + \lambda_{pm})$$
+
+                    <h4>Key Characteristics:</h4>
+                    <ul>
+                        <li><strong>Pros:</strong> Fastest possible dynamic response for fixed-frequency digital controllers.</li>
+                        <li><strong>Cons:</strong> Highly sensitive to parameter mismatch (\(R_s, L_d, L_q, \lambda_{pm}\)); requires model mismatch compensation or observers.</li>
+                    </ul>
+                </div>
+
+                <!-- 5. Sliding Mode Control -->
+                <div id="smc" class="tab-content">
+                    <h3>5. Sliding Mode Control (SMC)</h3>
+                    <p>A robust non-linear control strategy. Sliding surfaces are defined on current tracking errors, and switching controls force the state trajectories to slide along the manifold despite parameter variations.</p>
+
+                    $$s_d = i_d^* - i_d, \quad s_q = i_q^* - i_q$$
+                    $$v_d^* = v_{d,eq} + K_d \text{sgn}(s_d), \quad v_q^* = v_{q,eq} + K_q \text{sgn}(s_q)$$
+
+                    <pre>
+// Sliding Surface Evaluation
+s_d = id_ref - id_meas;
+s_q = iq_ref - iq_meas;
+
+// Reaching Law using Saturation Function (to reduce chattering)
+vd_ref = vd_eq + Kd * sat(s_d / boundary_layer);
+vq_ref = vq_eq + Kq * sat(s_q / boundary_layer);
+                    </pre>
+
+                    <h4>Key Characteristics:</h4>
+                    <ul>
+                        <li><strong>Pros:</strong> High robustness against inductance changes, magnetic saturation, and load disturbances.</li>
+                        <li><strong>Cons:</strong> High-frequency chattering phenomenon (mitigated by using continuous boundary layer approximations).</li>
+                    </ul>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showTab(tabId) {
+        // Hide all tab contents
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+
+        // Deactivate all buttons
+        document.querySelectorAll('.tab-btn').forEach(button => {
+            button.classList.remove('active');
+        });
+
+        // Show selected tab content and activate button
+        document.getElementById(tabId).classList.add('active');
+        event.currentTarget.classList.add('active');
+
+        // Re-render LaTeX math formulas inside active tab if needed
+        if (window.MathJax) {
+            MathJax.Hub.Queue(["Typeset", MathJax.Hub, tabId]);
+        }
+    }
+</script>
+
+</body>
+</html>
